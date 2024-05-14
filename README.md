@@ -1,1 +1,1 @@
-# OGTaudio
+# OGTaudio - Open Game Translator audio
