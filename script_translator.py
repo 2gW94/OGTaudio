@@ -1,6 +1,7 @@
 import argparse
 import subprocess
 import time
+import ollama
 
 
 class GameTranslator:
@@ -84,7 +85,7 @@ class GameTranslator:
         # Убедитесь, что путь к whisper.cpp и модели корректен
         whisper_path = "./whisper.cpp/main"
         model_path = "./whisper.cpp/models/ggml-base.en.bin"
-        result_file = self.filepath.replace(".wav.txt", ".txt")
+        result_file = self.filepath.replace(".wav", ".txt")
 
         # Запускаем whisper.cpp для транскрипции
         command = [
@@ -96,8 +97,12 @@ class GameTranslator:
         ]
         try:
             subprocess.run(command, check=True)
-            with open(result_file, "r") as f:
-                content = f.read().strip()
+            try:
+                with open(result_file, "r", encoding="utf-8") as f:
+                    content = f.read().strip()
+            except UnicodeDecodeError:
+                with open(result_file, "r", encoding="latin-1") as f:
+                    content = f.read().strip()
         except subprocess.CalledProcessError as e:
             print(f"Ошибка транскрипции с использованием whisper.cpp: {e}")
             content = ""
@@ -113,19 +118,15 @@ class GameTranslator:
         Returns:
             str: Результат перевода.
         """
-        command = [
-            "ollama", "run", "llama3",
-            f"Translate the following text to {self.output_language}: {text}"
-        ]
         try:
-            result = subprocess.run(
-                command,
-                capture_output=True,
-                text=True,
-                check=True
-            )
-            return result.stdout.strip()
-        except subprocess.CalledProcessError as e:
+            response = ollama.chat(model='llama3', messages=[
+                {
+                    'role': 'user',
+                    'content': f"Translate the following text to {self.output_language}: {text}",
+                },
+            ])
+            return response['message']['content'].strip()
+        except Exception as e:
             print(f"Ошибка перевода с использованием LLaMA 3: {e}")
             return ""
 
@@ -151,12 +152,50 @@ class GameTranslator:
             print("Ошибка: Транскрипция не удалась.")
             return ""
 
-        # Выполняем перевод
+            # Выполняем перевод
         translation = self.llama_translation(text)
+
+        # Записываем перевод в текстовый файл
+        output_translation_file = self.filepath.replace(".wav", "_translated.txt")
+        try:
+            with open(output_translation_file, "w", encoding="utf-8") as f:
+                f.write(translation)
+        except IOError as e:
+            print(f"Ошибка записи файла перевода: {e}")
+
         end_time = time.time()
         self.elapsed_time = end_time - start_time
         self.show_time()
+
+        # Отправляем перевод через Ollama
+        self.send_translation_via_ollama(output_translation_file)
+
         return translation
+
+    def send_translation_via_ollama(self, file_path):
+        """
+        Отправляет содержимое файла с переводом в Ollama.
+
+        Args:
+            file_path (str): Путь к текстовому файлу с переводом.
+        Returns:
+            None
+        """
+        try:
+            with open(file_path, 'r', encoding="utf-8") as f:
+                translation_content = f.read().strip()
+
+            response = ollama.chat(model='llama3', messages=[
+                {
+                    'role': 'user',
+                    'content': f'Here is the translated text:\n\n{translation_content}',
+                },
+            ])
+            print("Сообщение отправлено через Ollama:")
+            print(response['message']['content'].strip())
+
+        except Exception as e:
+            print(f"Ошибка при отправке через Ollama: {e}")
 
 def main():
         """
