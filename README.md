@@ -17,8 +17,8 @@
 
 1. Клонируйте репозиторий:
     ```bash
-    git clone https://github.com/your-username/game-translator.git
-    cd game-translator
+    git clone https://github.com/2gW94/OGTaudio.git
+    cd OGTaudio
     ```
 
 2. Установите зависимости Python:
@@ -46,7 +46,7 @@
 1. Подготовьте аудиофайл, который хотите транскрибировать и перевести.
 2. Запустите `Game Translator` с командной строки:
     ```bash
-    python translator.py --file /path/to/your/audiofile.wav \
+    python script_translator.py --file /path/to/your/audiofile.wav \
                          --transcription_model whisper_cpp \
                          --pre_recorded \
                          -i english \
@@ -55,7 +55,7 @@
 
 ### Пример
 ```bash
-python translator.py --file ./example.wav \
+python script_translator.py --file ./example.wav \
                      --transcription_model whisper_cpp \
                      --pre_recorded \
                      -i english \
